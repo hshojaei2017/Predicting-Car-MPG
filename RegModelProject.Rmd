@@ -1,0 +1,104 @@
+---
+title: "Regression Models - Course Project"
+author: "Hasan Shojaei"
+date: "`r format(Sys.time(), '%d %B %Y')`"
+output:
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Executive Summary
+
+In this report we investigate the relationship between MPG and a set of variables that describe a car using the mtcars dataset. We will address two basic questions:
+
+1. Is an automatic or manual transmission better for MPG
+2. Quantify the MPG difference between automatic and manual transmissions
+
+The main findings from this analysis are:
+
+- Cars with manual transmission perform better than automatic transmission cars
+
+- Manual transmission appears to improve MPG by **7.25** when transmission type is the only parameter considered in the model, which explains only **34%** of variability in the data. When other important parameters (weight, horsepower, displacement) are also included in the model, the expected MPG improvement by manual transmission is only **2.16**. This model explains **82%** of variability in the data. 
+
+## The *mtcars* Dataset
+
+We first load the data from the mtcars dataset, and then show the first 6 rows of the data to get a sense of what parameters are included in the dataset. 
+
+```{r mtcars, echo=TRUE}
+data(mtcars)
+head(mtcars)
+```
+
+## Exploratory Data Analysis
+
+We first use a boxplot (See Appendix A.1) to explore if transmission type has an impact on MPG. We observe that MPG is generally significanly higher for cars with manual transmission. To quantify this, we run a t-test (See Appendix A.2) and examine p-value and average MPG for each category. The p-value is *< 0.05* which means the true difference between MPG of the two categories is statistically significant. The mean MPG for manual and automatic cars are **24.39** and **17.15** respectively (i.e. a difference of **7.24**).
+
+## Regression Models
+
+To select model parameters, we first look at correlation between "mpg" and other parameters in the mtcars dataset. We then focus on the paramaters that have the largest correlation with "mpg": "cyl", "disp", "hp", "wt" (in addistion to "am" which is the main focus of this project) using the *pairs* plot (See Appendix A.3). We observe that some of the parameters are highly correlated and therefore including all of them may not add muchg value to the model. 
+```{r parselect, echo=TRUE}
+library(knitr)
+cor_cars <- cor(mtcars)
+kable(t(cor_cars[1,]), caption="Correlation Table", digits = 2)
+```
+
+We build 6 different models for "mpg" as it can be seen below: The first model includes only "am" as the aexplanatory variable, while more and more explanatory variables are added for models 2 through 6. We then perform a test using the ANOVA function (See Appendix A.4) and find that "fit4" provides the best parsimonious fit of the data.  
+
+Last, we investigate the residual plot (See Appendix A.5) and observe that residuals do not show any particular pattern and therefore satisfy the basic requirements of a linear model. 
+
+```{r modelselect, echo=TRUE}
+fit1 <- lm(mpg ~ am , data = mtcars) 
+fit2 <- lm(mpg ~ am + wt, data = mtcars) 
+fit3 <- lm(mpg ~ am + wt + disp , data = mtcars) 
+fit4 <- lm(mpg ~ am + wt + disp + hp, data = mtcars) 
+fit5 <- lm(mpg ~ am + wt + disp + hp + cyl, data = mtcars) 
+fit6 <- lm(mpg ~ ., data = mtcars)
+```
+
+## Conclusions
+
+The adjusted R^2^ for model "fit1" is 0.34 which means this model explains only 34% of variability in the data. On the other hand, the adjusted R^2^ for model "fit4" is 0.82 meaning this model can explain 82% of variability in the data, which is a significant improvement over model "fit1". 
+
+Another important observation from this study is that manual transmission appears to improve MPG by 7.25 when transmission type ("am") is the only explanatory parameter in the model, while expected MPG improvement by manual transmission is only 2.16 when three other important parameters (weight,  horsepower, displacement) are also included in the model. Therefore transmission type does not have as significant of an impact on PMG as it first appeared.   
+
+## Appendix
+
+### A.1 Exploratory Plot
+```{r A1, echo=TRUE}
+mtcars$am <- factor(mtcars$am,labels=c("Automatic","Manual"))
+with(mtcars, boxplot(mpg ~ am, col=c("red","green"),
+                     xlab="Transmission Type", ylab="MPG"))
+```
+
+### A.2 t-Test
+```{r A2, echo=TRUE}
+cars_automatic <- mtcars[mtcars$am=="Automatic",]
+cars_manual <- mtcars[mtcars$am=="Manual",]
+t.test(cars_automatic$mpg, cars_manual$mpg)
+```
+
+### A.3 Correlation Among Important Parameters
+```{r A3, echo=TRUE}
+data(mtcars)
+pairs(mtcars[,c(1:4,6,9)], panel = panel.smooth)
+```
+
+### A.4 ANOVA and Summary of Models 1 & 4
+```{r A4, echo=TRUE}
+anova(fit1, fit2, fit3, fit4, fit5, fit6)
+
+summary(fit1)$coeff
+summary(fit1)$adj.r.squared
+
+summary(fit4)$coeff
+summary(fit4)$adj.r.squared
+```
+
+### A.5 ANOVA and Summary of Models 1 & 4
+```{r A5, echo=TRUE}
+par(mfrow=c(2,2))
+plot(fit4)
+```
